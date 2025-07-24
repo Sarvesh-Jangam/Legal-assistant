@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useClerk } from "@clerk/nextjs";
-import Navbar from "./components/Navbar"; // Import the Navbar component
+import Navbar from "./components/Navbar";
+import { configDotenv } from "dotenv";
 
 export default function Home() {
   const [fileName, setFileName] = useState("");
@@ -13,6 +14,12 @@ export default function Home() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
   const { signOut } = useClerk();
+
+  useEffect(()=>{
+    (async()=>await fetch("/api/db",(req,res)=>{
+      
+    }))();
+  },[])
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
