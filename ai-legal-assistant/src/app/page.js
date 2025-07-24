@@ -50,7 +50,7 @@ export default function Home() {
       {/* Main content */}
       <div className="flex-1">
         <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-8 space-y-6">
-          <h1 className="text-3xl font-bold text-center text-gray-800">🧠 AI Legal Assistant</h1>
+          <h1 className="text-3xl font-bold text-center text-gray-800"> AI Legal Assistant</h1>
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Upload Contract (PDF)</label>
