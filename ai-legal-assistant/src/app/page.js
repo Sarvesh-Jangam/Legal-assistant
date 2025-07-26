@@ -16,7 +16,7 @@ export default function Home() {
   const { signOut } = useClerk();
 
   useEffect(()=>{
-    (async()=>await fetch("/api/db",(req,res)=>{
+    (async()=>await fetch("/api/chat",(req,res)=>{
       
     }))();
   },[])
