@@ -1,4 +1,4 @@
-import { connectDB } from "@/app/db";
+import { connectDB } from "@/app/db/connection";
 import { NextResponse } from "next/server";
 import Chat from "@/app/models/Chat"; 
 

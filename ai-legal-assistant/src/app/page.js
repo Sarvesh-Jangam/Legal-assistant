@@ -3,13 +3,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useClerk } from "@clerk/nextjs";
 import Navbar from "./components/Navbar";
-import { configDotenv } from "dotenv";
 
 export default function Home() {
   const [fileName, setFileName] = useState("");
   const [question, setQuestion] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploadedContractText, setUploadedContractText] = useState("");
 
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
@@ -27,30 +27,61 @@ export default function Home() {
     }
   }, [isLoaded, isSignedIn, router]);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     if (e.target.files?.[0]) {
       setFileName(e.target.files[0].name);
+
+      // Dynamically import pdfjs-dist only on the client
+      const pdfjsLib = await import("pdfjs-dist/build/pdf");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const typedarray = new Uint8Array(this.result);
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+        let text = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map(item => item.str).join(" ") + "\n";
+        }
+        setUploadedContractText(text);
+      };
+      reader.readAsArrayBuffer(file);
     }
   };
 
   const handleAnalyze = async () => {
     setLoading(true);
     setAiResponse("");
-
-    // Replace this with actual API call
-    setTimeout(() => {
-      setAiResponse("This is a sample AI response highlighting legal risks, obligations, and compliance issues.");
-      setLoading(false);
-    }, 1500);
+    try {
+      const answer = await askLegalQuestion(question, uploadedContractText);
+      setAiResponse(answer);
+    } catch (err) {
+      setAiResponse("There was an error processing your request.");
+    }
+    setLoading(false);
   };
 
+  async function askLegalQuestion(prompt, contractText) {
+    const res = await fetch("/api/ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, contractText })
+    });
+
+    const data = await res.json();
+    return data.response; // This is the Gemini answer
+  }
+
   if (!isLoaded || !isSignedIn) {
-    return null; // Optionally show a loading spinner here
+    return null; 
   }
 
   return (
     <>
-      <Navbar /> {/* Add the Navbar at the top */}
+      <Navbar /> 
       <main className="min-h-screen bg-gray-100 p-6 flex">
         {/* Sidebar for previous chats */}
         <aside className="w-64 bg-white shadow-lg rounded-2xl p-6 mr-8 flex flex-col">
