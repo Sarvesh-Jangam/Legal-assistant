@@ -15,15 +15,9 @@ export default function Home() {
   const { isSignedIn, isLoaded } = useAuth();
   const { signOut } = useClerk();
 
-  useEffect(()=>{
-    (async()=>await fetch("/api/chat",(req,res)=>{
-      
-    }))();
-  },[])
-
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.replace("/login"); // Redirect to login if not signed in
+      router.replace("/login");
     }
   }, [isLoaded, isSignedIn, router]);
 
@@ -31,7 +25,6 @@ export default function Home() {
     if (e.target.files?.[0]) {
       setFileName(e.target.files[0].name);
 
-      // Dynamically import pdfjs-dist and its worker only on the client
       const pdfjsLib = await import("pdfjs-dist/build/pdf");
       pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
@@ -72,108 +65,98 @@ export default function Home() {
     });
 
     const data = await res.json();
-    return data.response; // This is the Gemini answer
+    return data.response;
   }
 
-  if (!isLoaded || !isSignedIn) {
-    return null; 
-  }
+  if (!isLoaded || !isSignedIn) return null;
 
   return (
     <>
-      <Navbar /> 
-      <main className="min-h-screen bg-gray-100 p-6 flex">
-        {/* Sidebar for previous chats */}
-        <aside className="w-64 bg-white shadow-lg rounded-2xl p-6 mr-8 flex flex-col">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">💬 Previous Chats</h2>
-          {/* Example chat list, replace with dynamic data */}
-          <ul className="space-y-2 flex-1 overflow-y-auto">
-            <li className="p-3 rounded-lg bg-gray-100 hover:bg-blue-100 cursor-pointer text-gray-700">
-              What are the risks for the vendor?
-            </li>
-            <li className="p-3 rounded-lg bg-gray-100 hover:bg-blue-100 cursor-pointer text-gray-700">
-              List compliance issues in section 4
-            </li>
-            <li className="p-3 rounded-lg bg-gray-100 hover:bg-blue-100 cursor-pointer text-gray-700">
-              Summarize obligations for both parties
-            </li>
-            {/* Add more chats here */}
+      <Navbar />
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-100 p-6 flex gap-6">
+        
+        {/* Sidebar */}
+        <aside className="w-72 bg-white shadow-xl shadow-blue-100 rounded-3xl p-6 flex flex-col border border-blue-100">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">💬 Previous Chats</h2>
+          <ul className="space-y-3 overflow-y-auto flex-1">
+            {["What are the risks for the vendor?", "List compliance issues in section 4", "Summarize obligations for both parties"].map((item, i) => (
+              <li
+                key={i}
+                className="p-3 rounded-xl bg-gradient-to-r from-blue-100 to-purple-100 hover:from-blue-200 hover:to-purple-200 transition shadow-sm cursor-pointer text-sm text-gray-800"
+              >
+                {item}
+              </li>
+            ))}
           </ul>
-          <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+          <button className="mt-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium hover:brightness-110 transition shadow-md">
             + New Chat
           </button>
-          
         </aside>
 
-        {/* Main content */}
-        <div className="flex-1">
-          <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-8 space-y-6">
-            <h1 className="text-3xl font-bold text-center text-gray-800"> AI Legal Assistant</h1>
+        {/* Main Content */}
+        <section className="flex-1">
+          <div className="max-w-3xl mx-auto bg-white shadow-2xl rounded-3xl p-10 space-y-10 border border-gray-100">
+            <h1 className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-purple-600 drop-shadow-md">
+              ⚖️ AI Legal Assistant
+            </h1>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Upload Contract (PDF)</label>
+            {/* File Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Upload Contract (PDF)</label>
               <input
                 type="file"
                 accept=".pdf"
                 onChange={handleFileChange}
-                className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+                className="w-full text-sm file:bg-blue-200 file:text-blue-900 file:font-semibold file:border-0 file:rounded-lg file:px-4 file:py-2 hover:file:brightness-110 cursor-pointer transition shadow"
               />
               {fileName && (
-                <div className="flex items-center space-x-2 mt-1">
-                  <p className="text-sm text-green-700">📄 {fileName} uploaded</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <p className="text-green-700 text-sm font-medium">📄 {fileName} uploaded</p>
                   <button
-                    type="button"
                     onClick={() => setFileName("")}
-                    className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 flex items-center"
+                    className="text-red-600 hover:text-red-800 transition text-sm"
                     aria-label="Remove file"
                   >
-                    {/* Trash bin SVG icon */}
-                    <div>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        className="h-4 w-4"
-                      >
-                        <path fill="red" d="M 10.806641 2 C 10.289641 2 9.7956875 2.2043125 9.4296875 2.5703125 L 9 3 L 4 3 A 1.0001 1.0001 0 1 0 4 5 L 20 5 A 1.0001 1.0001 0 1 0 20 3 L 15 3 L 14.570312 2.5703125 C 14.205312 2.2043125 13.710359 2 13.193359 2 L 10.806641 2 z M 4.3652344 7 L 5.8925781 20.263672 C 6.0245781 21.253672 6.877 22 7.875 22 L 16.123047 22 C 17.121047 22 17.974422 21.254859 18.107422 20.255859 L 19.634766 7 L 4.3652344 7 z"></path>
-                      </svg>
-                    </div>
+                    ❌
                   </button>
                 </div>
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Ask a Question</label>
+            {/* Question Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ask a Question</label>
               <textarea
                 rows={4}
                 placeholder="e.g., What are the risks for the vendor?"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full p-4 text-sm rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:outline-none resize-none bg-gradient-to-br from-white to-blue-50 shadow-inner"
               />
             </div>
 
+            {/* Analyze Button */}
             <div className="flex justify-end">
               <button
                 onClick={handleAnalyze}
                 disabled={loading || !fileName || !question}
-                className={`px-6 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition ${(loading || !fileName || !question) && "opacity-50 cursor-not-allowed"
-                  }`}
+                className={`px-6 py-3 text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg transition ${
+                  (loading || !fileName || !question) && "opacity-50 cursor-not-allowed"
+                }`}
               >
                 {loading ? "Analyzing..." : "Analyze"}
               </button>
             </div>
 
+            {/* AI Response */}
             {aiResponse && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h2 className="text-lg font-semibold mb-2 text-gray-800">💬 AI Response</h2>
-                <p className="text-gray-700 whitespace-pre-line">{aiResponse}</p>
+              <div className="bg-white border border-blue-100 p-5 rounded-xl shadow-lg">
+                <h2 className="text-lg font-semibold text-blue-800 mb-2">💡 AI Response</h2>
+                <p className="text-gray-800 whitespace-pre-line leading-relaxed">{aiResponse}</p>
               </div>
             )}
           </div>
-        </div>
+        </section>
       </main>
     </>
   );
