@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
+import Link from "next/link";
 
 export default function Navbar() {
   const router = useRouter();
@@ -12,10 +13,10 @@ export default function Navbar() {
         <span className="text-xl font-bold text-blue-700">AI Legal Assistant</span>
       </div>
       <div className="flex items-center space-x-4">
-        <a href="/" className="text-gray-700 hover:text-blue-600 font-medium">Home</a>
-        <a href="/about" className="text-gray-700 hover:text-blue-600 font-medium">About</a>
+        <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium">Home</Link>
+        <Link href="/about" className="text-gray-700 hover:text-blue-600 font-medium">About</Link>
         <button
-          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold"
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold cursor-pointer"
           onClick={() => signOut(() => router.replace("/login"))}
         >
           Logout
