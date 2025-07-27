@@ -31,7 +31,7 @@ export default function Home() {
     if (e.target.files?.[0]) {
       setFileName(e.target.files[0].name);
 
-      // Dynamically import pdfjs-dist only on the client
+      // Dynamically import pdfjs-dist and its worker only on the client
       const pdfjsLib = await import("pdfjs-dist/build/pdf");
       pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
