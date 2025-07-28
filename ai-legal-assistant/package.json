@@ -17,7 +17,8 @@
     "mongoose": "^8.16.4",
     "next": "15.4.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "signature_pad": "^5.0.10"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

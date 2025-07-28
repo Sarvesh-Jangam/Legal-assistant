@@ -22,14 +22,12 @@ export function ChatProvider({ children }) {
   const handleChatSelect = (chat) => {
     setSelectedChat(chat);
     setQuestion(chat.question || "");
-    setAiResponse(chat.response || "");
     setFileName(chat.fileName || "");
   };
 
   const handleNewChat = () => {
     setSelectedChat(null);
     setQuestion("");
-    setAiResponse("");
     setFileName("");
   };
 

@@ -17,8 +17,8 @@ export async function POST(req) {
     
     const chat = await Chat.create({
       userId,
-      question,
-      response: "This is a sample response from the AI Legal Assistant.",
+      title:question,
+      // response: "This is a sample response from the AI Legal Assistant.",
       fileName: fileName || ""
     });
     return NextResponse.json({ success: true, chat });

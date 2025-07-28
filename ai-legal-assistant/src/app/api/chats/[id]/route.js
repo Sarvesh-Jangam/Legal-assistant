@@ -7,14 +7,22 @@ export async function PATCH(req, { params }) {
   try {
     const { id } = await params;
     const body = await req.json();
+    const { question } = body;
 
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(process.env.MONGODB_URI);
     }
 
+    // Update title when question changes
+    const title = question ? (question.length > 50 ? question.substring(0, 50) + "..." : question) : undefined;
+    const updateData = { ...body };
+    if (title) {
+      updateData.title = title;
+    }
+
     const updatedChat = await Chat.findByIdAndUpdate(
       id,
-      { $set: body },
+      { $set: updateData },
       { new: true }
     );
 

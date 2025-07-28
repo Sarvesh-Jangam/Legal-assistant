@@ -6,7 +6,8 @@ import Navbar from "./components/Navbar";
 import { configDotenv } from "dotenv";
 import Sidebar from "./components/Sidebar";
 import { useChatContext } from "./context/userContextProvider";
-import { chatService } from "./services/chatService";
+import { chatService } from "./services/chatService.js";
+import SignaturePad from "./components/SignaturePad.js";
 
 export default function Home() {
   const router = useRouter();
@@ -24,12 +25,10 @@ export default function Home() {
   
   const [selectedChatId, setSelectedChatId] = useState(null);
 
-  // Handle chat selection from sidebar
   const handleChatSelection = (chat) => {
     setSelectedChatId(chat._id);
-    setQuestion(chat.question || "");
+    setQuestion(chat.title || "");
     setFileName(chat.fileName || "");
-    setAiResponse(chat.response || "");
   };
 
   // Handle new chat button click
@@ -37,7 +36,6 @@ export default function Home() {
     setSelectedChatId(null);
     setQuestion("");
     setFileName("");
-    setAiResponse("");
     handleNewChat && handleNewChat();
   };
 
@@ -86,7 +84,7 @@ export default function Home() {
       if (selectedChatId) {
         // Update existing chat
         const updatedChat = await chatService.updateChat(selectedChatId, {
-          question,
+          question:question.replace(/\s+/g, ' ') .trim(),
           fileName,
         });
         
@@ -105,7 +103,7 @@ export default function Home() {
           },
           body: JSON.stringify({
             userId,
-            question,
+            question:question.replace(/\s+/g, ' ') .trim(), // This will be used to create the title in trimmed way removing whitespaces in between also
             fileName
           }),
         });
@@ -215,6 +213,7 @@ export default function Home() {
                 </div>
               )}
             </div>
+          <SignaturePad />
           </div>
         </main>
       </div>

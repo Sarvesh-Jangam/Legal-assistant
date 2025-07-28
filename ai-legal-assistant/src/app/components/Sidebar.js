@@ -46,10 +46,12 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
                     onKeyDown={async (e) => {
                       if (e.key === 'Enter') {
                         try {
-                          await chatService.updateChat(chat._id, {question: editText});
+                          await chatService.updateChat(chat._id, {
+                            title: editText
+                          });
                           setChats(prevChats => 
                             prevChats.map(c => 
-                              c._id === chat._id ? { ...c, question: editText } : c
+                              c._id === chat._id ? { ...c,title: editText } : c
                             )
                           );
                           setEditingId(null);
@@ -70,7 +72,7 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
                     className="cursor-pointer"
                     onClick={() => onChatSelect && onChatSelect(chat)}
                   >
-                    {chat.title || chat.question || "Untitled Chat"}
+                    {chat.title || "Untitled Chat"}
                   </div>
                 )}
               </div>
@@ -79,7 +81,7 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditingId(chat._id);
-                    setEditText(chat.question || chat.title || "");
+                    setEditText(chat.title || "");
                   }}
                   className="p-1 hover:bg-blue-200 rounded"
                   title="Edit"
