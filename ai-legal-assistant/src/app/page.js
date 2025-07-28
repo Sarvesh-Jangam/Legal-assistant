@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useClerk } from "@clerk/nextjs";
 import Navbar from "./components/Navbar";
+import SignaturePadComponent from "./components/SignaturePad";
 
 export default function Home() {
   const [fileName, setFileName] = useState("");
@@ -156,6 +157,7 @@ export default function Home() {
               </div>
             )}
           </div>
+             <SignaturePadComponent/>
         </section>
       </main>
     </>
