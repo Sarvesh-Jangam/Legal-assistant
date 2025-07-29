@@ -10,7 +10,7 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
 
   useEffect(() => {
     // Set loading to false when chats are loaded
-    if (chats) {
+    if (Array.isArray(chats) && chats.length > 0) {
       setIsLoading(false);
     }
   }, [chats]);
