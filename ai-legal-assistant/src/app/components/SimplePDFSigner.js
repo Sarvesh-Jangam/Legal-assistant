@@ -1,14 +1,39 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { PDFDocument } from 'pdf-lib';
 
-export default function SimplePDFSigner({ signature, onClose }) {
+export default function SimplePDFSigner({ signature, onClose, preloadedFile }) {
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [signatures, setSignatures] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef(null);
   const iframeRef = useRef(null);
+
+  // Load preloaded file on component mount
+  useEffect(() => {
+    const loadPreloadedFile = async () => {
+      if (preloadedFile) {
+        setIsProcessing(true);
+        try {
+          const arrayBuffer = await preloadedFile.arrayBuffer();
+          setPdfFile(arrayBuffer);
+          
+          // Create URL for iframe display
+          const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          setPdfUrl(url);
+        } catch (error) {
+          console.error('Error loading preloaded PDF:', error);
+          alert('Error loading PDF file');
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    };
+    
+    loadPreloadedFile();
+  }, [preloadedFile]);
 
   // Load PDF file
   const handleFileSelect = async (event) => {

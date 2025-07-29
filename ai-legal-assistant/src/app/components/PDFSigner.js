@@ -1,8 +1,8 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { PDFDocument, rgb } from 'pdf-lib';
 
-export default function PDFSigner({ signature, onClose }) {
+export default function PDFSigner({ signature, onClose, preloadedFile }) {
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfPages, setPdfPages] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
@@ -10,6 +10,27 @@ export default function PDFSigner({ signature, onClose }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Load preloaded file on component mount
+  useEffect(() => {
+    const loadPreloadedFile = async () => {
+      if (preloadedFile) {
+        setIsProcessing(true);
+        try {
+          const arrayBuffer = await preloadedFile.arrayBuffer();
+          setPdfFile(arrayBuffer);
+          await renderPDF(arrayBuffer);
+        } catch (error) {
+          console.error('Error loading preloaded PDF:', error);
+          alert('Error loading PDF file');
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    };
+    
+    loadPreloadedFile();
+  }, [preloadedFile]);
 
   // Load PDF file
   const handleFileSelect = async (event) => {

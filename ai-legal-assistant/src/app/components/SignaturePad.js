@@ -3,13 +3,17 @@ import { useRef, useEffect, useState } from "react";
 import SignaturePad from "signature_pad";
 import PDFSigner from "./PDFSigner";
 import SimplePDFSigner from "./SimplePDFSigner";
+import PDFSigningChoice from "./PDFSigningChoice";
 
-export default function SignaturePadComponent() {
+export default function SignaturePadComponent({ uploadedFile, fileName }) {
   const canvasRef = useRef(null);
   const signaturePadRef = useRef(null);
   const [imageURL, setImageURL] = useState(null);
   const [showPDFSigner, setShowPDFSigner] = useState(false);
   const [showSimplePDFSigner, setShowSimplePDFSigner] = useState(false);
+  const [showPDFChoice, setShowPDFChoice] = useState(false);
+  const [currentSignerType, setCurrentSignerType] = useState(null);
+  const [signerPdfFile, setSignerPdfFile] = useState(null);
 
   const resizeCanvas = () => {
     const canvas = canvasRef.current;
@@ -61,7 +65,37 @@ export default function SignaturePadComponent() {
       alert("Please create and save a signature first.");
       return;
     }
-    setShowPDFSigner(true);
+    setCurrentSignerType('advanced');
+    setShowPDFChoice(true);
+  };
+
+  const openSimplePDFSigner = () => {
+    if (!imageURL) {
+      alert("Please create and save a signature first.");
+      return;
+    }
+    setCurrentSignerType('simple');
+    setShowPDFChoice(true);
+  };
+
+  const handleUseUploadedPDF = () => {
+    if (uploadedFile) {
+      setSignerPdfFile(uploadedFile);
+    }
+    if (currentSignerType === 'simple') {
+      setShowSimplePDFSigner(true);
+    } else if (currentSignerType === 'advanced') {
+      setShowPDFSigner(true);
+    }
+  };
+
+  const handleChooseNewPDF = () => {
+    setSignerPdfFile(null);
+    if (currentSignerType === 'simple') {
+      setShowSimplePDFSigner(true);
+    } else if (currentSignerType === 'advanced') {
+      setShowPDFSigner(true);
+    }
   };
 
   return (
@@ -106,7 +140,7 @@ export default function SignaturePadComponent() {
           <div className="pt-2 space-y-3">
             <div className="flex gap-3 justify-center">
               <button
-                onClick={() => setShowSimplePDFSigner(true)}
+                onClick={openSimplePDFSigner}
                 className="px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg hover:shadow-xl hover:brightness-110 transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
               >
                 <span>📄</span>
@@ -125,18 +159,32 @@ export default function SignaturePadComponent() {
         </div>
       )}
       
+      {/* PDF Choice Modal */}
+      {showPDFChoice && (
+        <PDFSigningChoice
+          signature={imageURL}
+          onClose={() => setShowPDFChoice(false)}
+          hasUploadedPDF={!!uploadedFile}
+          uploadedFileName={fileName}
+          onUseUploadedPDF={handleUseUploadedPDF}
+          onChooseNewPDF={handleChooseNewPDF}
+        />
+      )}
+      
       {/* PDF Signer Modals */}
       {showPDFSigner && (
         <PDFSigner 
           signature={imageURL} 
-          onClose={() => setShowPDFSigner(false)} 
+          onClose={() => setShowPDFSigner(false)}
+          preloadedFile={signerPdfFile}
         />
       )}
       
       {showSimplePDFSigner && (
         <SimplePDFSigner 
           signature={imageURL} 
-          onClose={() => setShowSimplePDFSigner(false)} 
+          onClose={() => setShowSimplePDFSigner(false)}
+          preloadedFile={signerPdfFile}
         />
       )}
     </div>

@@ -499,7 +499,7 @@ export default function Home() {
           
           {/* Signature Modal */}
           <Modal isOpen={showSignatureModal} onClose={() => setShowSignatureModal(false)}>
-            <SignaturePad />
+            <SignaturePad uploadedFile={uploadedFile} fileName={fileName} />
           </Modal>
         </main>
       </div>
