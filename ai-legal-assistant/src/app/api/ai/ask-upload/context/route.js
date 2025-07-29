@@ -3,10 +3,9 @@ import { NextResponse } from "next/server";
 export async function POST(req) {
   const formData = await req.formData();
 
-  // formData should have "query" and "file"
-  // file is a File object
+  // formData should contain "query" and "file_id" file_id is returned from ask-upload
 
-  const response = await fetch("http://localhost:8000/ask-upload", {
+  const response = await fetch("http://localhost:8000/ask-context", {
     method: "POST",
     body: formData,
   });

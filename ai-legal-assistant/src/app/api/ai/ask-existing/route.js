@@ -1,10 +1,9 @@
-// pages/api/ask-existing.js
-
 import { NextResponse } from "next/server";
 
 export async function POST(req) {
   const formData = await req.formData();
-  const query = formData.get("query");
+
+  //form data should have query field
 
   const response = await fetch("http://localhost:8000/ask-existing", {
     method: "POST",
