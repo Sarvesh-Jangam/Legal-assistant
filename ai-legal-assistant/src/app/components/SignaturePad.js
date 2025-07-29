@@ -1,11 +1,15 @@
 'use client';
 import { useRef, useEffect, useState } from "react";
 import SignaturePad from "signature_pad";
+import PDFSigner from "./PDFSigner";
+import SimplePDFSigner from "./SimplePDFSigner";
 
 export default function SignaturePadComponent() {
   const canvasRef = useRef(null);
   const signaturePadRef = useRef(null);
   const [imageURL, setImageURL] = useState(null);
+  const [showPDFSigner, setShowPDFSigner] = useState(false);
+  const [showSimplePDFSigner, setShowSimplePDFSigner] = useState(false);
 
   const resizeCanvas = () => {
     const canvas = canvasRef.current;
@@ -26,8 +30,10 @@ export default function SignaturePadComponent() {
   useEffect(() => {
     const canvas = canvasRef.current;
     const signaturePad = new SignaturePad(canvas, {
-      backgroundColor: "#fdfbff",
-      penColor: "#4f46e5",
+      backgroundColor: "#ffffff",
+      penColor: "#1f2937",
+      minWidth: 2,
+      maxWidth: 4,
     });
     signaturePadRef.current = signaturePad;
 
@@ -46,8 +52,16 @@ export default function SignaturePadComponent() {
       alert("Please sign before saving.");
       return;
     }
-    const dataURL = signaturePadRef.current.toDataURL();
+    const dataURL = signaturePadRef.current.toDataURL("image/png", { backgroundColor: 'transparent' });
     setImageURL(dataURL);
+  };
+
+  const openPDFSigner = () => {
+    if (!imageURL) {
+      alert("Please create and save a signature first.");
+      return;
+    }
+    setShowPDFSigner(true);
   };
 
   return (
@@ -80,14 +94,50 @@ export default function SignaturePadComponent() {
       </div>
 
       {imageURL && (
-        <div className="pt-4 text-center">
+        <div className="pt-4 text-center space-y-4">
           <p className="text-sm text-gray-600 mb-2 font-medium">✅ Signature Preview:</p>
           <img
             src={imageURL}
             alt="Saved Signature"
-            className="inline-block border-2 border-blue-300 rounded-lg shadow"
+            className="inline-block border-2 border-blue-300 rounded-lg shadow mb-4"
           />
+          
+          {/* PDF Signing Buttons */}
+          <div className="pt-2 space-y-3">
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowSimplePDFSigner(true)}
+                className="px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg hover:shadow-xl hover:brightness-110 transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
+              >
+                <span>📄</span>
+                Simple PDF Signer
+              </button>
+              <button
+                onClick={openPDFSigner}
+                className="px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg hover:shadow-xl hover:brightness-110 transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
+              >
+                <span>🔧</span>
+                Advanced PDF Signer
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">Choose Simple for quick signing or Advanced for multi-page support</p>
+          </div>
         </div>
+      )}
+      
+      {/* PDF Signer Modals */}
+      {showPDFSigner && (
+        <PDFSigner 
+          signature={imageURL} 
+          onClose={() => setShowPDFSigner(false)} 
+        />
+      )}
+      
+      {showSimplePDFSigner && (
+        <SimplePDFSigner 
+          signature={imageURL} 
+          onClose={() => setShowSimplePDFSigner(false)} 
+        />
       )}
     </div>
   );

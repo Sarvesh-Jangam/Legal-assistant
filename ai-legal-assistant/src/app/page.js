@@ -33,10 +33,21 @@ export default function Home() {
   const [fileId, setFileId] = useState(null);
   const [queryMode, setQueryMode] = useState('existing'); // 'existing', 'upload', 'context'
 
-  const handleChatSelection = (chat) => {
+  const handleChatSelection = async (chat) => {
     setSelectedChatId(chat._id);
     setQuestion(chat.title || "");
     setFileName(chat.fileName || "");
+    
+    // Load messages for this chat
+    try {
+      const res = await fetch(`/api/messages?chatId=${chat._id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages || []);
+      }
+    } catch (error) {
+      console.error('Error loading chat messages:', error);
+    }
   };
 
   // Handle new chat button click
@@ -44,6 +55,9 @@ export default function Home() {
     setSelectedChatId(null);
     setQuestion("");
     setFileName("");
+    setMessages([]);
+    setInputMessage("");
+    setAiResponse("");
     handleNewChat && handleNewChat();
   };
 
@@ -117,19 +131,23 @@ export default function Home() {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = inputMessage;
     setInputMessage("");
     setChatLoading(true);
     
     try {
-      // Send message to AI
+      // Send message to AI with chat history integration
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: inputMessage,
-          contractText: fileName // You might want to include actual contract text here
+          prompt: currentMessage,
+          contractText: fileName,
+          userId: userId,
+          chatId: selectedChatId,
+          saveToHistory: true
         }),
       });
       
@@ -143,19 +161,18 @@ export default function Home() {
       
       setMessages(prev => [...prev, aiMessage]);
       
-      // Save messages to database if we have a selected chat
-      if (selectedChatId) {
-        await fetch('/api/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            chatId: selectedChatId,
-            messages: [userMessage, aiMessage]
-          }),
-        });
+      // If a new chat was created, update the selected chat ID and refresh chat list
+      if (data.chatId && !selectedChatId) {
+        setSelectedChatId(data.chatId);
+        
+        // Refresh the chat list to show the new chat
+        const chatRes = await fetch(`/api/chats?userId=${userId}`);
+        if (chatRes.ok) {
+          const chatData = await chatRes.json();
+          setChats(chatData.chats || []);
+        }
       }
+      
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage = {

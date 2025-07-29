@@ -206,6 +206,16 @@ Provide a helpful, informative response:
     return {"response": answer}
 
 # -------------------------------
+# /save-chat: Save chat for history
+# -------------------------------
+@app.post("/save-chat")
+async def save_chat(chat_id: str = Form(...), user_message: str = Form(...), ai_response: str = Form(...)):
+    """Save a chat conversation for history"""
+    # This endpoint will be called by the frontend to save chat messages
+    # For now, we'll just return success - the actual saving is handled by the Next.js backend
+    return {"success": True, "chat_id": chat_id}
+
+# -------------------------------
 # /ask-context: Ask using file_id
 # -------------------------------
 @app.post("/ask-context")
