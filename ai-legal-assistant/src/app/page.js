@@ -29,6 +29,9 @@ export default function Home() {
   const [inputMessage, setInputMessage] = useState("");
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [fileId, setFileId] = useState(null);
+  const [queryMode, setQueryMode] = useState('existing'); // 'existing', 'upload', 'context'
 
   const handleChatSelection = (chat) => {
     setSelectedChatId(chat._id);
@@ -77,7 +80,9 @@ export default function Home() {
 
   const handleFileChange = async (e) => {
     if (e.target.files?.[0]) {
-      setFileName(e.target.files?.[0]?.name);
+      setFileName(e.target.files[0].name);
+      setUploadedFile(e.target.files[0]);
+      setQueryMode('upload');
     }
   };
 
@@ -169,44 +174,48 @@ export default function Home() {
     setAiResponse("");
 
     try {
-      if (selectedChatId) {
-        // Update existing chat
-        const updatedChat = await chatService.updateChat(selectedChatId, {
-          question:question.replace(/\s+/g, ' ') .trim(),
-          fileName,
-        });
-        
-        setAiResponse(updatedChat.response);
-        setChats(prevChats =>
-          prevChats.map(c =>
-            c._id === selectedChatId ? updatedChat : c
-          )
-        );
-      } else {
-        // Save new chat
-        const response = await fetch('/api/chats/save', {
+      if (queryMode === 'existing') {
+         // Handle querying from existing legal documents
+        const formData = new FormData();
+        formData.append("query", question);
+        const response = await fetch('/api/ai/ask-existing', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId,
-            question:question.replace(/\s+/g, ' ') .trim(), // This will be used to create the title in trimmed way removing whitespaces in between also
-            fileName
-          }),
+          body: formData,
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        setAiResponse(data.answer);
+      } else if (queryMode === 'upload') {
+        // Handle uploading PDF and querying
+        if (!uploadedFile) throw new Error("No file uploaded!");
+        const formData = new FormData();
+        formData.append("query", question);
+        formData.append("file", uploadedFile);
+
+        const response = await fetch('/api/ai/ask-upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        setFileId(data.file_id);
+        setAiResponse(data.answer);
+      } else if (queryMode === 'context') {
+        // Handle querying using file_id
+        if (!fileId) throw new Error("No context available!");
+        const formData = new FormData();
+        formData.append("query", question);
+        formData.append("file_id", fileId);
+
+        const response = await fetch('/api/ai/ask-upload/context', {
+          method: 'POST',
+          body: formData,
         });
 
         const data = await response.json();
-        
-        if (data.success) {
-          setAiResponse(data.chat.response);
-          setChats(prevChats => {
-            const newChat = data.chat;
-            return [newChat, ...prevChats];
-          });
-        } else {
-          throw new Error(data.error);
-        }
+        if (data.error) throw new Error(data.error);
+        setAiResponse(data.answer);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -241,10 +250,61 @@ export default function Home() {
                 <p className="text-gray-600 text-lg">Professional Contract Analysis & Legal Support</p>
               </div>
 
+              {/* Query Mode Selection */}
               <div className="space-y-3">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  📄 Upload Contract (PDF)
+                  🔍 Choose Query Mode
                 </label>
+                <div className="flex space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQueryMode('existing');
+                      setFileName("");
+                      setUploadedFile(null);
+                      setFileId(null);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      queryMode === 'existing'
+                        ? 'bg-blue-500 text-white shadow-md'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    📚 Legal Database
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQueryMode('upload')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      queryMode === 'upload'
+                        ? 'bg-blue-500 text-white shadow-md'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    📄 Upload PDF
+                  </button>
+                  {fileId && (
+                    <button
+                      type="button"
+                      onClick={() => setQueryMode('context')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        queryMode === 'context'
+                          ? 'bg-blue-500 text-white shadow-md'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      🔄 Continue with Uploaded
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* File Upload Section - Only show if upload mode */}
+              {queryMode === 'upload' && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    📄 Upload Contract (PDF)
+                  </label>
                 <div className="relative">
                   <input
                     type="file"
@@ -277,7 +337,8 @@ export default function Home() {
                     </button>
                   </div>
                 )}
-              </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -295,8 +356,8 @@ export default function Home() {
               <div className="flex justify-end">
                 <button
                   onClick={handleAnalyze}
-                  disabled={loading || !fileName || !question}
-                  className={`px-8 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${(loading || !fileName || !question) && "opacity-50 cursor-not-allowed hover:scale-100"
+                  disabled={loading || !question || (queryMode === 'upload' && !uploadedFile) || (queryMode === 'context' && !fileId)}
+                  className={`px-8 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${(loading || !question || (queryMode === 'upload' && !uploadedFile) || (queryMode === 'context' && !fileId)) && "opacity-50 cursor-not-allowed hover:scale-100"
                     }`}
                 >
                   {loading ? (

@@ -5,7 +5,7 @@ from typing import Dict
 from fastapi import FastAPI, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
@@ -177,6 +177,33 @@ async def ask_from_uploaded(query: str = Form(...), file: UploadFile = None):
     result = qa_chain.run(query)
 
     return {"answer": result, "file_id": file_id}
+
+# -------------------------------
+# /chat: General chat endpoint
+# -------------------------------
+@app.post("/chat")
+async def general_chat(query: str = Form(...)):
+    """General chat endpoint for conversational AI without specific document context"""
+    
+    prompt = f"""
+You are a helpful AI legal assistant. Provide professional, accurate, and helpful legal guidance.
+Be conversational but maintain professionalism. If a question requires specific legal documents 
+or analysis, suggest the user upload a document or use the legal database.
+
+User Question: {query}
+
+Provide a helpful, informative response:
+"""
+
+    llm = ChatGoogleGenerativeAI(
+        model="models/gemini-2.5-pro",
+        temperature=0.3,
+        google_api_key=GEMINI_API_KEY
+    )
+    response = llm.invoke(prompt)
+    answer = response.content if hasattr(response, 'content') else str(response)
+
+    return {"response": answer}
 
 # -------------------------------
 # /ask-context: Ask using file_id

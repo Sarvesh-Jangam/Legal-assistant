@@ -3,17 +3,18 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
     const { prompt, contractText } = await request.json();
 
-    // Call Python backend
-    const response = await fetch("http://127.0.0.1:8000/", {
+    // Create FormData to match FastAPI endpoint expectations
+    const formData = new FormData();
+    formData.append("query", prompt);
+
+    // Call Python backend chat endpoint
+    const response = await fetch("http://localhost:8000/chat", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ question: prompt, contract: contractText }),
+        body: formData,
     });
 
     const data = await response.json();
 
-    return NextResponse.json({ response: data.response });
+    return NextResponse.json({ response: data.response });
 }
 
