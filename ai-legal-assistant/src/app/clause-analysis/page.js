@@ -122,62 +122,11 @@ export default function ClauseAnalysis() {
           {/* Error Message */}
           {error && <p className="text-red-500 mt-4">{error}</p>}
 
-          {/* Analysis Result */}
-          {analysisResult && (
-            <div className="mt-8">
-              <h2 className="text-2xl font-bold mb-4">Analysis Result</h2>
-              {analysisMode === 'extract' && (
-                <div className="space-y-4">
-                  <p><strong>Summary:</strong> {analysisResult.summary}</p>
-                  <p><strong>Total Clauses:</strong> {analysisResult.total_clauses}</p>
-                  <div className="space-y-2">
-                    {analysisResult.clauses.map((clause, index) => (
-                      <div key={index} className="p-4 border rounded-lg">
-                        <h3 className="font-bold">{clause.type}</h3>
-                        <p><strong>Risk:</strong> {clause.risk_level}</p>
-                        <p><strong>Text:</strong> {clause.text}</p>
-                        <p><strong>Analysis:</strong> {clause.analysis}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {analysisMode === 'compare' && (
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-bold text-lg mb-2">{analysisResult.document1.filename}</h3>
-                    <p>Total Clauses: {analysisResult.document1.total_clauses}</p>
-                    {/* Display clauses for doc 1 */}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2">{analysisResult.document2.filename}</h3>
-                    <p>Total Clauses: {analysisResult.document2.total_clauses}</p>
-                    {/* Display clauses for doc 2 */}
-                  </div>
-                  <div className="col-span-2">
-                    <h3 className="font-bold text-lg mb-2">Comparison</h3>
-                    <p>{analysisResult.comparison.comparison_analysis}</p>
-                  </div>
-                </div>
-              )}
-               {analysisMode === 'text' && (
-                <div className="space-y-4">
-                  <p><strong>Summary:</strong> {analysisResult.summary}</p>
-                  <p><strong>Total Clauses:</strong> {analysisResult.total_clauses}</p>
-                  <div className="space-y-2">
-                    {analysisResult.clauses.map((clause, index) => (
-                      <div key={index} className="p-4 border rounded-lg">
-                        <h3 className="font-bold">{clause.type}</h3>
-                        <p><strong>Risk:</strong> {clause.risk_level}</p>
-                        <p><strong>Text:</strong> {clause.text}</p>
-                        <p><strong>Analysis:</strong> {clause.analysis}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Use the enhanced ClauseAnalysisResults component */}
+          <ClauseAnalysisResults 
+            analysisResult={analysisResult} 
+            analysisMode={analysisMode} 
+          />
         </div>
       </main>
     </div>
