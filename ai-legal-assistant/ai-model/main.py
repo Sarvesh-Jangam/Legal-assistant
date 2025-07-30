@@ -11,6 +11,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain.chains import RetrievalQA
 from langchain.vectorstores.base import VectorStore
+from utils.clause_extractor import ClauseExtractor
 
 # Load environment variables
 load_dotenv()
@@ -234,3 +235,143 @@ async def ask_from_context(query: str = Form(...), file_id: str = Form(...)):
     result = qa_chain.run(query)
 
     return {"answer": result, "file_id": file_id}
+
+# -------------------------------
+# /extract-clauses: Extract clauses from uploaded PDF
+# -------------------------------
+@app.post("/extract-clauses")
+async def extract_clauses(file: UploadFile = None):
+    """Extract clauses from uploaded legal document"""
+    if file is None:
+        return {"error": "No file uploaded."}
+    
+    try:
+        # Save uploaded file temporarily
+        file_bytes = await file.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            tmp_file.write(file_bytes)
+            tmp_file_path = tmp_file.name
+        
+        # Initialize clause extractor
+        clause_extractor = ClauseExtractor(GEMINI_API_KEY)
+        
+        # Extract clauses
+        result = clause_extractor.extract_clauses_from_pdf(tmp_file_path)
+        
+        # Clean up temporary file
+        os.unlink(tmp_file_path)
+        
+        if "error" in result:
+            return result
+        
+        return {
+            "success": True,
+            "clauses": result["clauses"],
+            "summary": result["summary"],
+            "total_clauses": result["total_clauses"],
+            "file_name": file.filename
+        }
+        
+    except Exception as e:
+        return {"error": f"Failed to extract clauses: {str(e)}"}
+
+# -------------------------------
+# /analyze-clause-risks: Analyze risks in extracted clauses
+# -------------------------------
+@app.post("/analyze-clause-risks")
+async def analyze_clause_risks(clauses: list = Form(...)):
+    """Analyze risks in extracted clauses"""
+    try:
+        clause_extractor = ClauseExtractor(GEMINI_API_KEY)
+        risk_analysis = clause_extractor.analyze_clause_risks(clauses)
+        
+        return {
+            "success": True,
+            "risk_analysis": risk_analysis
+        }
+        
+    except Exception as e:
+        return {"error": f"Failed to analyze clause risks: {str(e)}"}
+
+# -------------------------------
+# /compare-clauses: Compare clauses between two documents
+# -------------------------------
+@app.post("/compare-clauses")
+async def compare_clauses(file1: UploadFile = None, file2: UploadFile = None):
+    """Compare clauses between two legal documents"""
+    if file1 is None or file2 is None:
+        return {"error": "Two files are required for comparison."}
+    
+    try:
+        clause_extractor = ClauseExtractor(GEMINI_API_KEY)
+        
+        # Process first document
+        file1_bytes = await file1.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file1:
+            tmp_file1.write(file1_bytes)
+            tmp_file1_path = tmp_file1.name
+        
+        result1 = clause_extractor.extract_clauses_from_pdf(tmp_file1_path)
+        os.unlink(tmp_file1_path)
+        
+        # Process second document
+        file2_bytes = await file2.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file2:
+            tmp_file2.write(file2_bytes)
+            tmp_file2_path = tmp_file2.name
+        
+        result2 = clause_extractor.extract_clauses_from_pdf(tmp_file2_path)
+        os.unlink(tmp_file2_path)
+        
+        if "error" in result1 or "error" in result2:
+            return {"error": "Failed to process one or both documents"}
+        
+        # Compare clauses
+        comparison = clause_extractor.compare_clauses(
+            result1["clauses"], 
+            result2["clauses"]
+        )
+        
+        return {
+            "success": True,
+            "document1": {
+                "filename": file1.filename,
+                "clauses": result1["clauses"],
+                "total_clauses": result1["total_clauses"]
+            },
+            "document2": {
+                "filename": file2.filename,
+                "clauses": result2["clauses"],
+                "total_clauses": result2["total_clauses"]
+            },
+            "comparison": comparison
+        }
+        
+    except Exception as e:
+        return {"error": f"Failed to compare documents: {str(e)}"}
+
+# -------------------------------
+# /extract-clauses-from-text: Extract clauses from text input
+# -------------------------------
+@app.post("/extract-clauses-from-text")
+async def extract_clauses_from_text(document_text: str = Form(...)):
+    """Extract clauses from provided text"""
+    if not document_text.strip():
+        return {"error": "No text provided."}
+    
+    try:
+        clause_extractor = ClauseExtractor(GEMINI_API_KEY)
+        result = clause_extractor.extract_clauses_from_text(document_text)
+        
+        if "error" in result:
+            return result
+        
+        return {
+            "success": True,
+            "clauses": result["clauses"],
+            "summary": result["summary"],
+            "total_clauses": result["total_clauses"]
+        }
+        
+    except Exception as e:
+        return {"error": f"Failed to extract clauses from text: {str(e)}"}
