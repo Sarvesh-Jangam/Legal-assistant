@@ -263,9 +263,10 @@ class ClauseExtractor:
         try:
             response = self.llm.invoke(comparison_prompt)
             analysis = response.content if hasattr(response, 'content') else str(response)
+            cleaned_analysis = self._clean_ai_response(analysis)
             
             return {
-                "comparison_analysis": analysis,
+                "comparison_analysis": cleaned_analysis,
                 "doc1_clause_count": len(document1_clauses),
                 "doc2_clause_count": len(document2_clauses)
             }
