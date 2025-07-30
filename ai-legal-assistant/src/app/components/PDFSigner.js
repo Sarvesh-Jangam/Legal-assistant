@@ -4,6 +4,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 
 export default function PDFSigner({ signature, onClose, preloadedFile }) {
   const [pdfFile, setPdfFile] = useState(null);
+  const [originalFile, setOriginalFile] = useState(null); // Store original File object
   const [pdfPages, setPdfPages] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [signatures, setSignatures] = useState([]);
@@ -19,6 +20,7 @@ export default function PDFSigner({ signature, onClose, preloadedFile }) {
         try {
           const arrayBuffer = await preloadedFile.arrayBuffer();
           setPdfFile(arrayBuffer);
+          setOriginalFile(preloadedFile); // Store original file
           await renderPDF(arrayBuffer);
         } catch (error) {
           console.error('Error loading preloaded PDF:', error);
@@ -44,6 +46,7 @@ export default function PDFSigner({ signature, onClose, preloadedFile }) {
     try {
       const arrayBuffer = await file.arrayBuffer();
       setPdfFile(arrayBuffer);
+      setOriginalFile(file); // Store original file
       await renderPDF(arrayBuffer);
     } catch (error) {
       console.error('Error loading PDF:', error);
@@ -59,29 +62,46 @@ export default function PDFSigner({ signature, onClose, preloadedFile }) {
       // Dynamically import pdf.js
       const pdfjsLib = await import('pdfjs-dist');
       
-      // Configure worker source with multiple fallbacks
-      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        // Try multiple CDN sources
+      // Set up worker using the local package
+      try {
+        // Import the worker from the local package
+        const workerSrc = await import('pdfjs-dist/build/pdf.worker.mjs');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc.default || workerSrc;
+        console.log('Using local pdfjs-dist worker');
+      } catch (workerError) {
+        console.warn('Failed to load local worker, trying CDN fallback:', workerError);
+        // Fallback to CDN with matching version
         const workerUrls = [
-          `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`,
-          `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`,
-          // Use the exact version that matches the installed package
-          'https://unpkg.com/pdfjs-dist@5.3.93/build/pdf.worker.min.js',
-          'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.3.93/build/pdf.worker.min.js'
+          'https://unpkg.com/pdfjs-dist@5.4.54/build/pdf.worker.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.worker.min.js',
+          'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.54/build/pdf.worker.min.js'
         ];
         
-        // Use the first URL as primary
-        pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrls[2]; // Use the exact version
+        let workerLoaded = false;
+        for (const workerUrl of workerUrls) {
+          try {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+            console.log('Using CDN worker:', workerUrl);
+            workerLoaded = true;
+            break;
+          } catch (error) {
+            console.warn('CDN Worker failed:', workerUrl, error);
+            continue;
+          }
+        }
+        
+        if (!workerLoaded) {
+          console.warn('All workers failed, disabling worker');
+          pdfjsLib.GlobalWorkerOptions.workerSrc = null;
+        }
       }
       
-      const pdf = await pdfjsLib.getDocument({ 
+      const loadingTask = pdfjsLib.getDocument({
         data: pdfData,
-        verbosity: 0,  // Reduce logging
-        // Add error handling options
-        standardFontDataUrl: `https://unpkg.com/pdfjs-dist@5.3.93/standard_fonts/`,
-        cMapUrl: `https://unpkg.com/pdfjs-dist@5.3.93/cmaps/`,
-        cMapPacked: true
-      }).promise;
+        verbosity: 0  // Reduce logging
+      });
+      
+      const pdf = await loadingTask.promise;
       const pages = [];
       
       for (let i = 1; i <= pdf.numPages; i++) {
@@ -111,7 +131,7 @@ export default function PDFSigner({ signature, onClose, preloadedFile }) {
       setCurrentPage(0);
     } catch (error) {
       console.error('Error rendering PDF:', error);
-      alert('Error rendering PDF');
+      alert(`Error rendering PDF: ${error.message}. Please try refreshing the page or using a different PDF file.`);
     }
   };
 
@@ -144,14 +164,16 @@ export default function PDFSigner({ signature, onClose, preloadedFile }) {
 
   // Download signed PDF
   const downloadSignedPDF = async () => {
-    if (!pdfFile || signatures.length === 0) {
+    if (!originalFile || signatures.length === 0) {
       alert('Please add at least one signature before downloading');
       return;
     }
 
     setIsProcessing(true);
     try {
-      const pdfDoc = await PDFDocument.load(pdfFile);
+      // Read fresh ArrayBuffer from original file to avoid detachment issues
+      const freshArrayBuffer = await originalFile.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(freshArrayBuffer);
       const pages = pdfDoc.getPages();
 
       for (const sig of signatures) {
@@ -177,8 +199,13 @@ export default function PDFSigner({ signature, onClose, preloadedFile }) {
 
       const pdfBytes = await pdfDoc.save();
       
+      // Create a completely new ArrayBuffer copy to avoid detachment issues
+      const pdfUint8Array = new Uint8Array(pdfBytes);
+      const pdfNewBuffer = new ArrayBuffer(pdfUint8Array.length);
+      const pdfNewUint8Array = new Uint8Array(pdfNewBuffer);
+      pdfNewUint8Array.set(pdfUint8Array);
       // Download the signed PDF
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([pdfNewBuffer], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -279,23 +306,24 @@ export default function PDFSigner({ signature, onClose, preloadedFile }) {
               {pdfPages.length > 0 && (
                 <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
                   <p className="text-sm text-gray-600 mb-2">Click anywhere on the document to place your signature</p>
-                  <div className="relative inline-block">
+                  <div className="relative max-h-[60vh] overflow-auto bg-white rounded border border-gray-200">
                     {pdfPages[currentPage] && (
                       <div
-                        className="relative cursor-crosshair"
+                        className="relative cursor-crosshair inline-block"
                         onClick={handlePDFClick}
                       >
                         <div
                           className="relative border border-gray-300 shadow-lg"
                           style={{
                             width: pdfPages[currentPage].width,
-                            height: pdfPages[currentPage].height
+                            height: pdfPages[currentPage].height,
+                            minWidth: '100%'
                           }}
                         >
                           <img
                             src={pdfPages[currentPage].canvas.toDataURL()}
                             alt={`PDF Page ${currentPage + 1}`}
-                            className="w-full h-full"
+                            className="w-full h-full block"
                             draggable={false}
                           />
                         </div>

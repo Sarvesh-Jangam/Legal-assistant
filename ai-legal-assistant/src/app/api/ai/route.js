@@ -4,7 +4,7 @@ import Message from "@/app/models/message.model.js";
 import mongoose from "mongoose";
 
 export async function POST(request) {
-    const { prompt, contractText, userId, chatId, saveToHistory = true } = await request.json();
+    const { prompt, contractText, userId, chatId, saveToHistory = true, uploadedFile, fileId } = await request.json();
 
     // Create FormData to match FastAPI endpoint expectations
     const formData = new FormData();
