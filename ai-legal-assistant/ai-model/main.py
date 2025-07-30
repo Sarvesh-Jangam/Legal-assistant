@@ -1,6 +1,7 @@
 import os
 import tempfile
 import hashlib
+import re
 from typing import Dict
 from fastapi import FastAPI, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,6 +49,20 @@ legal_docs_store: Dict[str, VectorStore] = {}  # For /ask-existing
 # -------------------------------
 def file_hash(file_bytes):
     return hashlib.md5(file_bytes).hexdigest()
+
+# -------------------------------
+# Utility: Clean AI response
+# -------------------------------
+def clean_ai_response(response: str) -> str:
+    """Clean AI response by removing excessive formatting symbols."""
+    # Remove excessive asterisks and bullet points
+    cleaned = re.sub(r'\*{2,}', '', response)  # Remove multiple asterisks
+    cleaned = re.sub(r'^\s*[\*\-\•]\s*', '', cleaned, flags=re.MULTILINE)  # Remove bullet points
+    cleaned = re.sub(r'\*([^\*]+)\*', r'\1', cleaned)  # Remove single asterisk emphasis
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)  # Reduce multiple newlines
+    cleaned = re.sub(r'#{1,6}\s*', '', cleaned)  # Remove markdown headers
+    cleaned = re.sub(r'`([^`]+)`', r'\1', cleaned)  # Remove code formatting
+    return cleaned.strip()
 
 # -------------------------------
 # Utility: Create FAISS vectorstore safely
@@ -187,8 +202,9 @@ Provide a legally accurate, helpful, and context-aware answer.
     )
     response = llm.invoke(prompt)
     answer = response.content if hasattr(response, 'content') else str(response)
+    cleaned_answer = clean_ai_response(answer)
 
-    return {"answer": answer, "source": best_source}
+    return {"answer": cleaned_answer, "source": best_source}
 
 # -------------------------------
 # /ask-upload: Upload PDF & Ask
@@ -232,8 +248,9 @@ async def ask_from_uploaded(query: str = Form(...), file: UploadFile = None):
     )
     qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever())
     result = qa_chain.run(query)
+    cleaned_result = clean_ai_response(result)
 
-    return {"answer": result, "file_id": file_id}
+    return {"answer": cleaned_result, "file_id": file_id}
 
 # -------------------------------
 # /chat: General chat endpoint
@@ -259,8 +276,9 @@ Provide a helpful, informative response:
     )
     response = llm.invoke(prompt)
     answer = response.content if hasattr(response, 'content') else str(response)
+    cleaned_answer = clean_ai_response(answer)
 
-    return {"response": answer}
+    return {"response": cleaned_answer}
 
 # -------------------------------
 # /save-chat: Save chat for history
@@ -298,8 +316,9 @@ async def ask_from_context(query: str = Form(...), file_id: str = Form(...)):
     )
     qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=vectorstore.as_retriever())
     result = qa_chain.run(query)
+    cleaned_result = clean_ai_response(result)
 
-    return {"answer": result, "file_id": file_id}
+    return {"answer": cleaned_result, "file_id": file_id}
 
 # -------------------------------
 # /extract-clauses: Extract clauses from uploaded PDF

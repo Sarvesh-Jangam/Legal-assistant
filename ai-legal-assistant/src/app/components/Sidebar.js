@@ -32,7 +32,7 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
         </div>
         <h2 className="text-xl font-bold text-gray-800">Chat History</h2>
       </div>
-      <ul className="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
+      <ul className="space-y-4 flex-1 overflow-y-auto custom-scrollbar">
         {isLoading ? (
           <div className="flex flex-col space-y-4 p-4">
             {[...Array(3)].map((_, index) => (
@@ -49,7 +49,7 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
           chats.map((chat) => (
             <li
               key={chat._id}
-              className="p-3 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-700 flex items-center justify-between group"
+              className="p-3 rounded-lg bg-white/90 hover:bg-blue-50/80 text-gray-800 flex items-center justify-between group shadow-sm border border-gray-200/50 mb-2 transition-all duration-200 hover:shadow-md"
             >
               <div className="flex-1 mr-2">
                 {editingId === chat._id ? (
