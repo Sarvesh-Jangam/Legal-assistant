@@ -9,15 +9,29 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set loading to false when chats are loaded
-    if (Array.isArray(chats) && chats.length > 0) {
+    // Set loading to false when chats are loaded (whether empty or not)
+    if (Array.isArray(chats)) {
       setIsLoading(false);
     }
   }, [chats]);
 
+  // Reset loading state when userId changes
+  useEffect(() => {
+    if (userId) {
+      setIsLoading(true);
+    }
+  }, [userId]);
+
   return (
-    <aside className="w-64 bg-white shadow-lg rounded-2xl p-6 mr-8 flex flex-col h-[calc(100vh-7rem)]">
-      <h2 className="text-xl font-bold mb-4 text-gray-800">💬 Previous Chats</h2>
+    <aside className="w-64 bg-gradient-to-br from-white via-slate-50 to-blue-50/30 shadow-xl rounded-2xl p-6 mr-8 flex flex-col h-[calc(100vh-7rem)] border border-indigo-100/50">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-md">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold text-gray-800">Chat History</h2>
+      </div>
       <ul className="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
         {isLoading ? (
           <div className="flex flex-col space-y-4 p-4">
@@ -69,10 +83,20 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
                   />
                 ) : (
                   <div 
-                    className="cursor-pointer"
+                    className="cursor-pointer flex items-center space-x-2"
                     onClick={() => onChatSelect && onChatSelect(chat)}
                   >
-                    {chat.title || "Untitled Chat"}
+                    <span className="flex-1">{chat.title || "Untitled Chat"}</span>
+                    {chat.hasDocument && (
+                      <span 
+                        className="text-indigo-500 text-xs flex items-center p-1 bg-indigo-50 rounded"
+                        title={`Document: ${chat.fileName}`}
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -121,16 +145,23 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
         )}
       </ul>
       <button
-        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+        className="mt-4 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:hover:scale-100 flex items-center justify-center space-x-2"
         onClick={onNewChat}
         disabled={isLoading}
       >
         {isLoading ? (
-          <div className="flex items-center justify-center">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-            Loading...
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Loading...</span>
           </div>
-        ) : '+ New Chat'}
+        ) : (
+          <>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span>New Chat</span>
+          </>
+        )}
       </button>
     </aside>
   );
