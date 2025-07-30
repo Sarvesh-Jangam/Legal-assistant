@@ -210,7 +210,7 @@ async def ask_from_uploaded(query: str = Form(...), file: UploadFile = None):
     if file_id in vectorstore_cache:
         vectorstore = vectorstore_cache[file_id]
     elif os.path.exists(save_path):
-        vectorstore = FAISS.load_local(save_path, embeddings)
+        vectorstore = FAISS.load_local(save_path, embeddings, allow_dangerous_deserialization=True)
         vectorstore_cache[file_id] = vectorstore
     else:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
@@ -278,7 +278,16 @@ async def save_chat(chat_id: str = Form(...), user_message: str = Form(...), ai_
 @app.post("/ask-context")
 async def ask_from_context(query: str = Form(...), file_id: str = Form(...)):
     if file_id not in vectorstore_cache:
-        return {"error": "Context not found. Please upload the file first."}
+        save_path = os.path.join(VECTORSTORE_DIR, file_id)
+        if os.path.exists(save_path):
+            embeddings = GoogleGenerativeAIEmbeddings(
+                model="models/embedding-001",
+                google_api_key=GEMINI_API_KEY
+            )
+            vectorstore = FAISS.load_local(save_path, embeddings, allow_dangerous_deserialization=True)
+            vectorstore_cache[file_id] = vectorstore
+        else:
+            return {"error": "Context not found. Please upload the file first."}
 
     vectorstore = vectorstore_cache[file_id]
 

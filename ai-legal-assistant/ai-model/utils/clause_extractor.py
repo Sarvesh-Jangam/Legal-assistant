@@ -38,18 +38,24 @@ class ClauseExtractor:
         prompt = f"""
         You are a legal document analysis expert. Analyze the following legal document and extract key clauses.
         
-        For each clause found, provide:
-        1. Clause Type (e.g., Payment, Termination, Liability, etc.)
-        2. Clause Text (the actual text of the clause)
-        3. Key Points (summarized main points)
-        4. Risk Level (High/Medium/Low)
-        5. Analysis (brief analysis of implications)
+        For each clause found, provide the information in this EXACT format:
+        
+        CLAUSE_START
+        Type: [Clause type like Payment, Termination, Liability, etc.]
+        Text: [The actual clause text from the document]
+        Key Points: [Main points in plain text, no bullet points or asterisks]
+        Risk Level: [High/Medium/Low]
+        Analysis: [Brief analysis in plain text, no formatting symbols]
+        CLAUSE_END
         
         Document Text:
         {document_text}
         
-        Please format your response as a structured analysis with clear sections for each clause type found.
-        Focus on the most important and legally significant clauses.
+        IMPORTANT FORMATTING RULES:
+        - Use plain text only, no asterisks (*), bullet points, or special formatting
+        - Each clause must start with CLAUSE_START and end with CLAUSE_END
+        - Use simple sentences and avoid excessive formatting
+        - Focus on the most important and legally significant clauses
         """
         
         try:
@@ -87,31 +93,95 @@ class ClauseExtractor:
             return {"error": f"Failed to process PDF: {str(e)}"}
     
     def _parse_ai_response(self, ai_response: str) -> List[Dict[str, Any]]:
-        """Parse AI response into structured clause data."""
+        """Parse AI response into structured clause data using regex with fallbacks."""
         clauses = []
         
-        # This is a simplified parser - you might want to make it more sophisticated
+        # Clean response by removing excessive asterisks and formatting
+        cleaned_response = self._clean_ai_response(ai_response)
+        
+        # Method 1: Try to parse using CLAUSE_START/CLAUSE_END markers
+        clause_blocks = re.findall(r'CLAUSE_START(.*?)CLAUSE_END', cleaned_response, re.DOTALL | re.IGNORECASE)
+        
+        if clause_blocks:
+            for block in clause_blocks:
+                clause = self._extract_clause_fields(block)
+                if clause:
+                    clauses.append(clause)
+        else:
+            # Method 2: Fallback to old parsing method for backward compatibility
+            clauses = self._fallback_parse(cleaned_response)
+        
+        return clauses
+    
+    def _clean_ai_response(self, response: str) -> str:
+        """Clean AI response by removing excessive formatting symbols."""
+        # Remove excessive asterisks and bullet points
+        cleaned = re.sub(r'\*{2,}', '', response)  # Remove multiple asterisks
+        cleaned = re.sub(r'^\s*[\*\-\•]\s*', '', cleaned, flags=re.MULTILINE)  # Remove bullet points
+        cleaned = re.sub(r'\*([^\*]+)\*', r'\1', cleaned)  # Remove single asterisk emphasis
+        cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)  # Reduce multiple newlines
+        return cleaned.strip()
+    
+    def _extract_clause_fields(self, clause_block: str) -> Dict[str, Any]:
+        """Extract clause fields from a clause block using regex."""
+        clause = {}
+        
+        # Define regex patterns for each field
+        patterns = {
+            'type': r'Type:\s*([^\n]+)',
+            'text': r'Text:\s*([^\n]+(?:\n(?!(?:Key Points|Risk Level|Analysis):)[^\n]*)*)',
+            'key_points': r'Key Points:\s*([^\n]+(?:\n(?!(?:Risk Level|Analysis):)[^\n]*)*)',
+            'risk_level': r'Risk Level:\s*([^\n]+)',
+            'analysis': r'Analysis:\s*([^\n]+(?:\n(?!(?:Type|Text|Key Points|Risk Level):)[^\n]*)*)'
+        }
+        
+        for field, pattern in patterns.items():
+            match = re.search(pattern, clause_block, re.IGNORECASE | re.DOTALL)
+            if match:
+                value = match.group(1).strip()
+                # Further clean the extracted value
+                value = re.sub(r'^[\*\-\•]\s*', '', value, flags=re.MULTILINE)
+                clause[field] = value
+            else:
+                clause[field] = 'Not specified'
+        
+        return clause if any(v != 'Not specified' for v in clause.values()) else None
+    
+    def _fallback_parse(self, ai_response: str) -> List[Dict[str, Any]]:
+        """Fallback parsing method for backward compatibility."""
+        clauses = []
         sections = ai_response.split('\n\n')
         
         current_clause = {}
         for section in sections:
             if section.strip():
+                section_clean = section.strip()
+                
                 # Try to identify different parts of the clause analysis
-                if 'Type:' in section or 'Clause Type:' in section:
-                    if current_clause:
+                if re.search(r'(Type:|Clause Type:)', section_clean, re.IGNORECASE):
+                    if current_clause and any(current_clause.values()):
                         clauses.append(current_clause)
                         current_clause = {}
-                    current_clause['type'] = section.split(':')[1].strip()
-                elif 'Text:' in section or 'Clause Text:' in section:
-                    current_clause['text'] = section.split(':', 1)[1].strip()
-                elif 'Key Points:' in section:
-                    current_clause['key_points'] = section.split(':', 1)[1].strip()
-                elif 'Risk Level:' in section:
-                    current_clause['risk_level'] = section.split(':')[1].strip()
-                elif 'Analysis:' in section:
-                    current_clause['analysis'] = section.split(':', 1)[1].strip()
+                    match = re.search(r'(?:Type:|Clause Type:)\s*(.+)', section_clean, re.IGNORECASE)
+                    current_clause['type'] = match.group(1).strip() if match else 'Unknown'
+                    
+                elif re.search(r'(Text:|Clause Text:)', section_clean, re.IGNORECASE):
+                    match = re.search(r'(?:Text:|Clause Text:)\s*(.+)', section_clean, re.IGNORECASE | re.DOTALL)
+                    current_clause['text'] = match.group(1).strip() if match else 'Not specified'
+                    
+                elif re.search(r'Key Points:', section_clean, re.IGNORECASE):
+                    match = re.search(r'Key Points:\s*(.+)', section_clean, re.IGNORECASE | re.DOTALL)
+                    current_clause['key_points'] = match.group(1).strip() if match else 'Not specified'
+                    
+                elif re.search(r'Risk Level:', section_clean, re.IGNORECASE):
+                    match = re.search(r'Risk Level:\s*(.+)', section_clean, re.IGNORECASE)
+                    current_clause['risk_level'] = match.group(1).strip() if match else 'Unknown'
+                    
+                elif re.search(r'Analysis:', section_clean, re.IGNORECASE):
+                    match = re.search(r'Analysis:\s*(.+)', section_clean, re.IGNORECASE | re.DOTALL)
+                    current_clause['analysis'] = match.group(1).strip() if match else 'Not specified'
         
-        if current_clause:
+        if current_clause and any(current_clause.values()):
             clauses.append(current_clause)
         
         return clauses
