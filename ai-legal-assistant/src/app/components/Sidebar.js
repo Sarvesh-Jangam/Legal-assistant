@@ -8,6 +8,8 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
   const [editText, setEditText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
+
+
   useEffect(() => {
     // Set loading to false when chats are loaded (whether empty or not)
     if (Array.isArray(chats)) {
@@ -19,6 +21,8 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
   useEffect(() => {
     if (userId) {
       setIsLoading(true);
+    } else {
+      setIsLoading(false);
     }
   }, [userId]);
 
