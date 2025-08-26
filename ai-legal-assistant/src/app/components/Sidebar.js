@@ -6,23 +6,25 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
   const {chats, setChats} = useChatContext();
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const {loading, setLoading} = useChatContext();
 
 
 
   useEffect(() => {
     // Set loading to false when chats are loaded (whether empty or not)
-    if (Array.isArray(chats)) {
-      setIsLoading(false);
+    if (chats) {
+      setLoading(false);
+      console.log(chats);
     }
   }, [chats]);
 
   // Reset loading state when userId changes
   useEffect(() => {
     if (userId) {
-      setIsLoading(true);
+      setLoading(true);
+      console.log(chats);
     } else {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [userId]);
 
@@ -37,7 +39,7 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
         <h2 className="text-xl font-bold text-gray-800">Chat History</h2>
       </div>
       <ul className="space-y-4 flex-1 overflow-y-auto custom-scrollbar">
-        {isLoading ? (
+        {loading ? (
           <div className="flex flex-col space-y-4 p-4">
             {[...Array(3)].map((_, index) => (
               <div key={index} className="animate-pulse flex space-x-4">
@@ -47,7 +49,7 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
               </div>
             ))}
           </div>
-        ) : chats.length === 0 ? (
+        ) : chats?.length === 0 || !chats ? (
           <li className="text-gray-500">No previous chats</li>
         ) : (
           chats.map((chat) => (
@@ -151,9 +153,9 @@ export default function Sidebar({ onChatSelect, onNewChat, userId }) {
       <button
         className="mt-4 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:hover:scale-100 flex items-center justify-center space-x-2"
         onClick={onNewChat}
-        disabled={isLoading}
+        disabled={loading}
       >
-        {isLoading ? (
+        {loading ? (
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             <span>Loading...</span>

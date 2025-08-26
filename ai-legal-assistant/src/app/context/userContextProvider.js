@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const ChatContext = createContext();
 
@@ -13,11 +13,13 @@ export function useChatContext() {
 
 export function ChatProvider({ children }) {
   const [selectedChat, setSelectedChat] = useState(null);
-  const [chats, setChats] = useState([]);
+  const [chats, setChats] = useState(null);
   const [question, setQuestion] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
+
+
 
   const handleChatSelect = (chat) => {
     setSelectedChat(chat);
